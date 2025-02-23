@@ -1,4 +1,5 @@
 const express = require('express')
+const pool = require('./databasepg.js')
 const cors = require('cors')
 const app = express()
 const port = process.env.port || 5000;
@@ -10,7 +11,6 @@ const users = [
 ];
 
 app.listen(port, () => console.log('Conectado...'));
-
 app.use(express.json());
 app.use(cors());
 
@@ -34,14 +34,26 @@ app.post('/api/login', (req, res) => {
         res.status(401).send('Credenciales incorrectas');
     }
 });
-    
-    //const user = {
-        //id: users.length + 1,
-        //username: req.body.username,
-        //password: req.body.password
-    //}
 
-    //users.push(user);
+app.post('/api/login/createuser', (req, res) =>{
+    let name = req.body.name;
+    let email = req.body.email;
+    let password = req.body.password;
+
+    let insert = `INSERT INTO users(username_user, email_user, password_user) VALUES('${name}', '${email}', '${password}')`
+
+    pool.query(insert, (err, result)=>{
+        if(!err){
+            res.send('Insercion exitosa')
+        }
+        else{
+            console.log(err.message)
+        }
+    })
+
+})
+    
+    
 
 app.delete('/api/login/:id', (req, res) => {
     const user = users.find(c => c.id === parseInt(req.params.id));
