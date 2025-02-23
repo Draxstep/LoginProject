@@ -1,14 +1,9 @@
 const express = require('express')
+const bcrypt = require('bcryptjs')
 const pool = require('./databasepg.js')
 const cors = require('cors')
 const app = express()
 const port = process.env.port || 5000;
-
-const users = [
-    {id: 1, username: 'CamiloR', password: '123456'},
-    {id: 2, username: 'MariaH', password: '123456'},
-    {id: 3, username: 'JuanM', password: '123456'}
-];
 
 app.listen(port, () => console.log('Conectado...'));
 app.use(express.json());
@@ -18,50 +13,55 @@ app.get('/', (req, res) => {
     res.send('API Login')
 });
 
-app.get('/api/login', (req, res) => {
-    res.send('Metodo get funcionando.')
-});
+app.post('/api/login', async (req, res) => {
 
-app.post('/api/login', (req, res) => {
+    let username = req.body.username;
+    let password = req.body.password;
+    let select = `SELECT * FROM users WHERE username_user = '${username}'`;
+    let result = await pool.query(select);
 
-    const { username, password } = req.body; 
+    if(result.rows[0]){
 
-    const user = users.find(c => c.username === username && c.password === password);
+        if(await bcrypt.compare(password, result.rows[0].password_user)){
 
-    if (user) {
-        res.send('Usuario autenticado exitosamente.');
-    } else {
-        res.status(401).send('Credenciales incorrectas');
+            res.send('Usuario autenticado exitosamente.')
+
+        }else{
+
+            res.status(401).send('Credenciales incorrectas');
+        }
+        
+    }else{
+
+        res.status(401).send('Usuario no existe');
     }
+
 });
 
-app.post('/api/login/createuser', (req, res) =>{
+app.post('/api/login/createuser', async (req, res) => {
+
     let name = req.body.name;
     let email = req.body.email;
     let password = req.body.password;
+    let hashPassword = await bcrypt.hash(password, 10);
+    
 
-    let insert = `INSERT INTO users(username_user, email_user, password_user) VALUES('${name}', '${email}', '${password}')`
+    let insert = `INSERT INTO users(username_user, email_user, password_user) VALUES('${name}', '${email}', '${hashPassword}')`
 
     pool.query(insert, (err, result)=>{
+
         if(!err){
-            res.send('Insercion exitosa')
+
+            res.send('Insercion exitosa');
+
         }
         else{
-            console.log(err.message)
+
+            console.log(err.message);
+            
         }
     })
 
 })
     
-    
-
-app.delete('/api/login/:id', (req, res) => {
-    const user = users.find(c => c.id === parseInt(req.params.id));
-    if(!user) return res.send('Usuario no encontrado.')
-
-    const index = users.indexOf(user);
-    users.splice(index, 1);
-    res.send('Usuario ' + user.username + ' borrado exitosamente.')
-});
-
 
