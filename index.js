@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/api/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'front.html'));
+    res.sendFile(path.join(__dirname, 'front.html'))
 });
 
 //app.get('/api/home', (req, res) => {
@@ -101,21 +101,25 @@ app.post('/api/login/createuser', async (req, res) => {
     let hashPassword = await bcrypt.hash(password, 10);
     
 
-    let insert = `INSERT INTO users(username_user, email_user, password_user) VALUES('${name}', '${email}', '${hashPassword}')`
+    let insert = `INSERT INTO users(username_user, email_user, password_user) VALUES('${name}', '${email}', '${hashPassword}') RETURNING id_user`
+    
+    let result = await pool.query(insert);
 
-    pool.query(insert, (err, result)=>{
+    if(result.rows.length > 0){
 
-        if(!err){
+        let id_user = result.rows[0].id_user
+        let insertRol = `INSERT INTO users_rol(id_user, id_rol) VALUES('${id_user}','2')`;
+        
+        await pool.query(insertRol);
 
-            res.send('Insercion exitosa');
+        res.send("OK");
 
-        }
-        else{
+    }   else{
 
-            console.log(err.message);
-            
-        }
-    })
+        res.status(401);
+        
+    }
+    
 
 })
     
