@@ -63,9 +63,6 @@ app.post('/api/recuperacion', async (req, res) => {
             res.status(401).send("Correo no registrado.");
         }
 
-        
-    
-
 })
 
 app.post('/api/login', async (req, res) => {
