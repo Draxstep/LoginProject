@@ -6,13 +6,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Hector Ramirez",
+  "author": "Hector Ramirez , Johan Mora",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "express": "^4.21.2",
+    "loginapi": "file:",
     "nodemailer": "^6.10.0",
     "path": "^0.12.7",
     "pg": "^8.13.3"
