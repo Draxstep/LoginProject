@@ -1,0 +1,11 @@
+h1 {
+    background-color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+body {
+    background: url(R.jpeg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
