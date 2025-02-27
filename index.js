@@ -13,6 +13,7 @@ const port = process.env.port || 5000;
 const userMail = "thedraxstep1@gmail.com";
 const appPass = "viik vlrm cvnv lyuh";
 const rateLimit = require("express-rate-limit");
+const allowedOrigin = `http://localhost:${port}`;
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -23,17 +24,19 @@ const transporter = nodemailer.createTransport({
 })
 
 
-app.listen(port, () => console.log('Conectado...'+'`Servidor corriendo en http://localhost:${PORT}`'));
+app.listen(port, () => console.log(`Servidor corriendo en http://localhost:${port}`));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/resources', express.static(path.join(__dirname, 'resources')));
 app.use(express.static(__dirname));
+app.use(cookieParser());
 
-app.use(cookieParser())
+
 app.use(cors({
-    origin: "front.html",
+    origin: allowedOrigin,
     credentials: true
 }));
+
 
 app.get('/api/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'front.html'))
@@ -98,46 +101,53 @@ El equipo de soporte`
             res.status(401).send("Correo no registrado.");
         }
 
-})
-
-app.post('/api/login', async (req, res) => {
-
-    let username = req.body.username;
-    let password = req.body.password;
-    let select = `SELECT * FROM users WHERE username_user = '${username}'`;
-    let result = await pool.query(select);
-
-    if(result.rows[0]){
-
-        if(await bcrypt.compare(password, result.rows[0].password_user)){
-
-            const token = jwt.sign({username: username}, SECRET_KEY, {expiresIn: '1h'}) 
-            res.cookie('accessToken', token, {httpOnly: true})
-                .status(200)
-                .json({ message: 'Usuario autenticado exitosamente.', token });
-
-
-        }else{
-            
-            res.status(401).send('Credenciales incorrectas');
-        }
-
-    }else{
-
-        res.status(401).send('Usuario no existe');
-    }
-
 });
 
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
+    windowMs: 5 * 60 * 1000, 
     max: 5, // intentozs
-    message: "límite de intentos alcanzado, Intente más tarde."
+    message: { message: "Demasiados intentos. Intenta más tarde." },
+    Headers:true
 });
 
-app.post("/login", loginLimiter, (req, res) => {
-    res.send("Login procesado...");
+app.set("trust proxy", 1);
+
+app.post('/api/login', loginLimiter, async (req, res) => {
+    console.log("Ruta /api/login llamada");
+    console.log(`Intento de login desde: ${req.ip}`);
+
+    let { username, password } = req.body;
+    
+    try {
+        let select = `SELECT * FROM users WHERE username_user = $1`;
+        let result = await pool.query(select, [username]);
+
+        if (result.rows.length > 0) {
+            let user = result.rows[0];
+
+            if (await bcrypt.compare(password, user.password_user)) {
+                const token = jwt.sign({ username: username }, SECRET_KEY, { expiresIn: '1h' });
+                res.cookie('accessToken', token, { httpOnly: true })
+                    .status(200)
+                    .json({ message: 'Usuario autenticado exitosamente.', token });
+            } else {
+                res.status(401).json({ error: 'Credenciales incorrectas' });
+            }
+        } else {
+            res.status(401).json({ error: 'Usuario no existe' });
+        }
+    } catch (error) {
+        console.error("Error en /api/login:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
 });
+
+/*app.post("/api/login", loginLimiter, (req, res) => {
+    console.log("Ruta /api/login llamada");
+    console.log(`Intento de login desde: ${req.ip}`);
+    res.json({ message: "Procesando login..." });
+});*/
+
 
 app.post('/api/login/createuser', async (req, res) => {
     try {
