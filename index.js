@@ -27,8 +27,6 @@ const transporter = nodemailer.createTransport({
 app.listen(port, () => console.log(`Servidor corriendo en http://localhost:${port}`));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/resources', express.static(path.join(__dirname, 'resources')));
-app.use(express.static(__dirname));
 app.use(cookieParser());
 
 
@@ -39,7 +37,7 @@ app.use(cors({
 
 
 app.get('/api/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'front.html'))
+    res.sendFile(path.join(__dirname, 'public','front.html'))
 });
 
 
