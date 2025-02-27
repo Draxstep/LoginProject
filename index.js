@@ -5,6 +5,9 @@ const nodemailer = require('nodemailer')
 const path = require('path')
 const pool = require('./databasepg.js')
 const cors = require('cors')
+const cookieParser = require('cookie-parser')
+const jwt = require('jsonwebtoken')
+const SECRET_KEY = 'passkeytoken'
 const app = express()
 const port = process.env.port || 5000;
 const userMail = "thedraxstep1@gmail.com";
@@ -20,15 +23,33 @@ const transporter = nodemailer.createTransport({
 
 app.listen(port, () => console.log('Conectado...'));
 app.use(express.json());
-app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(cookieParser())
+app.use(cors({
+    origin: "front.html",
+    credentials: true
+}));
 
 app.get('/api/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'front.html'))
+    res.sendFile(path.join(__dirname, './front.html'))
 });
 
-//app.get('/api/home', (req, res) => {
-    //res.sendFile(path.join(__dirname, 'home.html'));
-//})
+
+app.get('/api/login/home', (req, res) => {
+    const token = req.cookies.access_token
+    if(!token){
+        return res.status(403).send('Acceso no autorizado.')
+    }
+
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        res.json({ message: "Acceso permitido", user: decoded.username });
+    } catch (error) {
+        res.status(403).json({ message: 'Token inválido o expirado' });
+    }
+    
+})
+
 
 app.post('/api/recuperacion', async (req, res) => {
 
@@ -76,7 +97,11 @@ app.post('/api/login', async (req, res) => {
 
         if(await bcrypt.compare(password, result.rows[0].password_user)){
 
-            res.send('Usuario autenticado exitosamente.')
+            const token = jwt.sign({username: username}, SECRET_KEY, {expiresIn: '1h'}) 
+            res.cookie('accessToken', token, {httpOnly: true})
+                .status(200)
+                .json({ message: 'Usuario autenticado exitosamente.', token });
+
 
         }else{
 
@@ -97,7 +122,6 @@ app.post('/api/login/createuser', async (req, res) => {
     let password = req.body.password;
     let hashPassword = await bcrypt.hash(password, 10);
     
-
     let insert = `INSERT INTO users(username_user, email_user, password_user) VALUES('${name}', '${email}', '${hashPassword}') RETURNING id_user`
     
     let result = await pool.query(insert);
@@ -117,7 +141,6 @@ app.post('/api/login/createuser', async (req, res) => {
         
     }
     
-
 })
     
 
