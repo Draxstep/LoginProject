@@ -5,10 +5,15 @@ const nodemailer = require('nodemailer')
 const path = require('path')
 const pool = require('./databasepg.js')
 const cors = require('cors')
+const cookieParser = require('cookie-parser')
+const jwt = require('jsonwebtoken')
+const SECRET_KEY = 'passkeytoken'
 const app = express()
 const port = process.env.port || 5000;
 const userMail = "thedraxstep1@gmail.com";
 const appPass = "viik vlrm cvnv lyuh";
+const rateLimit = require("express-rate-limit");
+
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -18,17 +23,38 @@ const transporter = nodemailer.createTransport({
 })
 
 
-app.listen(port, () => console.log('Conectado...'));
+app.listen(port, () => console.log('Conectado...'+'`Servidor corriendo en http://localhost:${PORT}`'));
 app.use(express.json());
-app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/resources', express.static(path.join(__dirname, 'resources')));
+app.use(express.static(__dirname));
+
+app.use(cookieParser())
+app.use(cors({
+    origin: "front.html",
+    credentials: true
+}));
 
 app.get('/api/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'front.html'))
 });
 
-//app.get('/api/home', (req, res) => {
-    //res.sendFile(path.join(__dirname, 'home.html'));
-//})
+
+app.get('/api/login/home', (req, res) => {
+    const token = req.cookies.access_token
+    if(!token){
+        return res.status(403).send('Acceso no autorizado.')
+    }
+
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        res.json({ message: "Acceso permitido", user: decoded.username });
+    } catch (error) {
+        res.status(403).json({ message: 'Token inválido o expirado' });
+    }
+    
+})
+
 
 app.post('/api/recuperacion', async (req, res) => {
 
@@ -47,7 +73,16 @@ app.post('/api/recuperacion', async (req, res) => {
             from: userMail,
             to: email,
             subject: "Recuperacion de contraseña",
-            text: `Su nueva contraseña es: '${newPass}'`
+            text: `Estimado usuario,
+
+Hemos recibido una solicitud para restablecer su contraseña. Su nueva contraseña temporal es: **${newPass}**  
+
+Por razones de seguridad, le recomendamos que inicie sesión lo antes posible y cambie su contraseña.  
+
+Si usted no solicitó este cambio, por favor ignore este mensaje o póngase en contacto con nuestro equipo de soporte.  
+
+Atentamente,  
+El equipo de soporte`
         };
 
         transporter.sendMail(mailBody, (error, info) => {
@@ -76,13 +111,17 @@ app.post('/api/login', async (req, res) => {
 
         if(await bcrypt.compare(password, result.rows[0].password_user)){
 
-            res.send('Usuario autenticado exitosamente.')
+            const token = jwt.sign({username: username}, SECRET_KEY, {expiresIn: '1h'}) 
+            res.cookie('accessToken', token, {httpOnly: true})
+                .status(200)
+                .json({ message: 'Usuario autenticado exitosamente.', token });
+
 
         }else{
-
+            
             res.status(401).send('Credenciales incorrectas');
         }
-        
+
     }else{
 
         res.status(401).send('Usuario no existe');
@@ -90,34 +129,38 @@ app.post('/api/login', async (req, res) => {
 
 });
 
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 5, // intentozs
+    message: "límite de intentos alcanzado, Intente más tarde."
+});
+
+app.post("/login", loginLimiter, (req, res) => {
+    res.send("Login procesado...");
+});
+
 app.post('/api/login/createuser', async (req, res) => {
-
-    let name = req.body.name;
-    let email = req.body.email;
-    let password = req.body.password;
-    let hashPassword = await bcrypt.hash(password, 10);
-    
-
-    let insert = `INSERT INTO users(username_user, email_user, password_user) VALUES('${name}', '${email}', '${hashPassword}') RETURNING id_user`
-    
-    let result = await pool.query(insert);
-
-    if(result.rows.length > 0){
-
-        let id_user = result.rows[0].id_user
-        let insertRol = `INSERT INTO users_rol(id_user, id_rol) VALUES('${id_user}','2')`;
+    try {
+        let { name, email, password } = req.body;
+        let hashPassword = await bcrypt.hash(password, 10);
         
-        await pool.query(insertRol);
+        let insert = `INSERT INTO users(username_user, email_user, password_user) VALUES($1, $2, $3) RETURNING id_user`;
+        let result = await pool.query(insert, [name, email, hashPassword]);
 
-        res.send("OK");
+        if (result.rows.length > 0) {
+            let id_user = result.rows[0].id_user;
+            let insertRol = `INSERT INTO users_rol(id_user, id_rol) VALUES($1, '2')`;
+            await pool.query(insertRol, [id_user]);
 
-    }   else{
-
-        res.status(401);
-        
+            res.status(201).json({ message: "Usuario creado exitosamente" });
+        } else {
+            res.status(400).json({ error: "No se pudo crear el usuario" });
+        }
+    } catch (error) {
+        console.error("Error en /api/login/createuser:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
     }
-    
+});
 
-})
     
 

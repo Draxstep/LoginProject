@@ -10,9 +10,9 @@ registerForm.addEventListener("submit", (event) => {
     let user = {name:name, email:email, password:password}
     let userjson = JSON.stringify(user);
 
-    fetch("http://localhost:5000/api/login/createuser", {
+    fetch("/api/login/createuser", {
 
-        method: "Post",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: userjson
 
@@ -21,7 +21,7 @@ registerForm.addEventListener("submit", (event) => {
         if (response.ok) {
 
             alert("Usuario creado exitosamente.") 
-            window.location.href = "front.html";
+            window.location.href = "./front.html";
 
         } else {
 
