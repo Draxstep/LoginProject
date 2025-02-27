@@ -1,32 +1,44 @@
 const form = document.getElementById("formulario");
 
-form.addEventListener("submit", (event) => {
-
+form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    let username = document.getElementById("InputUsername").value;
-    let password = document.getElementById("InputPassword").value;
+    let username = document.getElementById("InputUsername").value.trim();
+    let password = document.getElementById("InputPassword").value.trim();
 
-    let userpassword = {username:username, password:password}
-    let userpasswordjson = JSON.stringify(userpassword);
+    if (!username || !password) {
+        alert("Por favor, completa todos los campos.");
+        return;
+    }
 
-    fetch("http://localhost:5000/api/login", {
+    let userpassword = { username, password };
+    
+    try {
+        let response = await fetch("http://localhost:5000/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userpassword),
+            credentials: "include"
+        });
 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: userpasswordjson,
-        credentials: "include"
-
-    }).then(response => response.json())
-    .then(data => {
-        if(data.token){
-            window.location.href = "/home.html"
-            cargarHome();
-        } else {
-            alert("Error: " + data.message);
+        let data;
+        try {
+            data = await response.json();
+        } catch (jsonError) {
+            throw new Error("Respuesta del servidor no válida.");
         }
-    })
-})
+
+        if (response.ok) {
+            window.location.href = "/home.html";
+        } else {
+            alert("Error: " + (data.error || "Credenciales incorrectas."));
+        }
+        
+    } catch (error) {
+        alert("Error en la conexión con el servidor. Intenta nuevamente.");
+        console.error("Error en la petición:", error);
+    }
+});
 
 function cargarHome() {
     fetch("http://localhost:5000/api/login/home", {
@@ -41,5 +53,8 @@ function cargarHome() {
             window.location.href = "/api/login"; 
         }
     })
-    .catch(error => console.error("Error:", error));
+    .catch(error => {
+        console.error("Error en cargarHome:", error);
+        alert("Error al cargar la página de inicio.");
+    });
 }
