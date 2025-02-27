@@ -26,7 +26,6 @@ const transporter = nodemailer.createTransport({
 
 app.listen(port, () => console.log(`Servidor corriendo en http://localhost:${port}`));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
 
 
@@ -37,7 +36,7 @@ app.use(cors({
 
 
 app.get('/api/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public','front.html'))
+    res.sendFile(path.resolve(__dirname, 'front.html'))
 });
 
 
@@ -102,7 +101,7 @@ El equipo de soporte`
 });
 
 const loginLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000, 
+    windowMs: 15 * 60 * 1000, 
     max: 5, // intentozs
     message: { message: "Demasiados intentos. Intenta más tarde." },
     Headers:true
