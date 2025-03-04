@@ -4,7 +4,7 @@ h1 {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 body {
-    background: url(/resources/R.jpeg);
+    background: url(../resources/R.jpeg);
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;

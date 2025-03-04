@@ -27,6 +27,8 @@ const transporter = nodemailer.createTransport({
 app.listen(port, () => console.log(`Servidor corriendo en http://localhost:${port}`));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/resources', express.static(path.join(__dirname, 'resources')));
+
 app.use(cookieParser());
 
 

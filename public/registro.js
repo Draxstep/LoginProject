@@ -21,7 +21,7 @@ registerForm.addEventListener("submit", (event) => {
         if (response.ok) {
 
             alert("Usuario creado exitosamente.") 
-            window.location.href = "./front.html";
+            window.location.href = "/api/login";
 
         } else {
 
