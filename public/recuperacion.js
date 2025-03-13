@@ -19,7 +19,7 @@ form.addEventListener("submit", (event) => {
 
         if (response.ok) { 
             alert("Correo de recuperacion enviado exitosamente.")
-            window.location.href = "front.html";
+            window.location.href = "/api/login";
 
         } else {
 
